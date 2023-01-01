@@ -1,0 +1,5 @@
+HMAC
+AWS4-HMAC-SHA256
+
+https://github.com/awsdocs/aws-doc-sdk-examples/tree/main/gov2/s3
+https://docs.aws.amazon.com/sdk-for-go/api/service/s3/#S3.PutObject
