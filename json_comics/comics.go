@@ -12,6 +12,12 @@ import (
 func main() {
 	//s3yandex.InitCheckS3yandex()
 	CreateBaseOfAllComics(5)
+	spComics, err := s3general.GetComics("asstudiotest", "test", "test")
+	if err != nil {
+		fmt.Printf("ошибка поиска комикса %v\n", err)
+	} else {
+		fmt.Printf("резульатт поиска %v\n", spComics)
+	}
 }
 func findComics(text string) (string, string, error) {
 	arrxkcd, arrbyteBuf, err := s3general.FindComics(text)

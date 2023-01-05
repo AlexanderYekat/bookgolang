@@ -143,6 +143,7 @@ func WriteComics(comics xkcd.TComics, nameBucket string) error {
 	for k, v := range metaDataDryData {
 		metaData[k] = strconv.Quote(v)
 	}
+	metaData["num"] = strconv.Itoa(comics.Num)
 	jpgfile, countBytes, err := getImage(comics.Img)
 	if err != nil {
 		fmt.Printf("не удалось получить картинку комикса %v\n", err)
@@ -188,7 +189,47 @@ func GetComics(nameBucket, field, val string) ([]xkcd.TComics, error) {
 	}
 	for _, object := range listObjsResponse.Contents {
 		fmt.Printf("%s (%d bytes, class %v) \n", *object.Key, object.Size, object.StorageClass)
+		headObjOut, err := client.HeadObject(context.TODO(), &s3.HeadObjectInput{
+			Bucket: aws.String(nameBucket),
+			Key:    aws.String(*object.Key),
+		})
+		if err != nil {
+			fmt.Printf("ошибка чтения метаданных комикса %v\n", *object.Key)
+			continue
+		}
+		fmt.Printf("metadata = %s\n", headObjOut.Metadata)
+		metaDataMy := make(map[string]string)
+		for k, v := range headObjOut.Metadata {
+			metaDataMy[k], err = strconv.Unquote(v)
+			if err != nil {
+				fmt.Printf("ошибка unquote поля %v со значением %v\n", k, v)
+				metaDataMy[k] = v
+			}
+		}
+		fmt.Printf("metadatMy = %s\n", metaDataMy)
+		//jsonBytes, err := json.Marshal(headObjOut.Metadata)
+		jsonBytes, err := json.Marshal(metaDataMy)
+		fmt.Printf("jsonBytes = %s\n", jsonBytes)
+		if err != nil {
+			fmt.Printf("ошибка разбора метаданных на байты %v\n", err)
+			continue
+		}
 		comics = new(xkcd.TComics)
+		err = json.Unmarshal(jsonBytes, comics)
+		if err != nil {
+			strErr := fmt.Sprintf("%v", err)
+			fmt.Println(strErr)
+			if !strings.Contains(strErr, "cannot unmarshal string into Go") {
+				fmt.Printf("ошибка пробразования метаданных в тип TComics %v\n", err)
+				//fmt.Printf("ошибка %v\n", err)
+				continue
+			}
+		}
+		comics.Num, err = strconv.Atoi(*object.Key)
+		if err != nil {
+			fmt.Printf("%v\n", err)
+		}
+		//fmt.Printf("comics = %s\n", comics)
 		comices = append(comices, *comics)
 	}
 
